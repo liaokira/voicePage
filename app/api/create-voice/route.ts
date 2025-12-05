@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Create voice from embedding
+    // According to Cartesia's \"Create Voice\" docs, the body should include
+    // at least: name, description, language, and embedding.
+    const createBody = {
+      name: body.name ?? 'Mixed Voice',
+      description: body.description ?? 'A voice created by mixing multiple voices',
+      language: body.language ?? 'en',
+      embedding,
+    };
+
     const createResponse = await fetch('https://api.cartesia.ai/voices', {
       method: 'POST',
       headers: {
@@ -56,7 +65,7 @@ export async function POST(request: NextRequest) {
         'Cartesia-Version': apiVersion,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ embedding }),
+      body: JSON.stringify(createBody),
     });
 
     if (!createResponse.ok) {

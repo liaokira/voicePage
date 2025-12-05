@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface VoiceInput {
   id: string;
@@ -10,9 +10,22 @@ interface VoiceInput {
 export default function Home() {
   const [apiKey, setApiKey] = useState('');
   const [apiVersion, setApiVersion] = useState('2024-11-13');
+  const [voiceName, setVoiceName] = useState('');
+  const [voiceDescription, setVoiceDescription] = useState('');
   const [voices, setVoices] = useState<VoiceInput[]>([{ id: '', weight: 0.5 }]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ voiceId?: string; error?: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const match = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('cartesiaApiKey='));
+    if (match) {
+      const value = decodeURIComponent(match.split('=')[1] || '');
+      if (value) setApiKey(value);
+    }
+  }, []);
 
   const addVoice = () => {
     setVoices([...voices, { id: '', weight: 0.5 }]);
@@ -44,6 +57,13 @@ export default function Home() {
         throw new Error('At least one voice ID is required');
       }
 
+      // Persist API key in a cookie after first use
+      if (typeof document !== 'undefined') {
+        document.cookie = `cartesiaApiKey=${encodeURIComponent(
+          apiKey.trim()
+        )}; max-age=2592000; path=/; SameSite=Strict`;
+      }
+
       // Call API route
       const response = await fetch('/api/create-voice', {
         method: 'POST',
@@ -53,6 +73,8 @@ export default function Home() {
         body: JSON.stringify({
           apiKey,
           apiVersion,
+          name: voiceName || undefined,
+          description: voiceDescription || undefined,
           voices: validVoices.map(v => ({
             id: v.id.trim(),
             weight: Number(v.weight),
@@ -90,6 +112,28 @@ export default function Home() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter your Cartesia API key"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="voiceName">Voice Name</label>
+            <input
+              id="voiceName"
+              type="text"
+              value={voiceName}
+              onChange={(e) => setVoiceName(e.target.value)}
+              placeholder="e.g. Friendly Mixed Voice"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="voiceDescription">Voice Description</label>
+            <input
+              id="voiceDescription"
+              type="text"
+              value={voiceDescription}
+              onChange={(e) => setVoiceDescription(e.target.value)}
+              placeholder="Short description of this mixed voice"
             />
           </div>
 
